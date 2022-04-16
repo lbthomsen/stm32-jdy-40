@@ -28,6 +28,11 @@ typedef enum {
     JDY40_Timeout
 } JDY40_result_t;
 
-JDY40_result_t jdy40_init(JDY40_HandleTypeDef *jdy40, UART_HandleTypeDef *uart, GPIO_TypeDef *cs_port, uint16_t cs_pin, GPIO_TypeDef *set_port, uint16_t set_pin);
+typedef enum {
+	JDY40_Idle,
+	JDY40_Receiving
+} JDY40_state_t;
+
+JDY40_result_t jdy40_init(JDY40_HandleTypeDef *jdy40_init, UART_HandleTypeDef *uart, GPIO_TypeDef *cs_port, uint16_t cs_pin, GPIO_TypeDef *set_port, uint16_t set_pin);
 
 #endif /* JDY_40_H_ */
