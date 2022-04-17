@@ -14,6 +14,8 @@
 #define JDY40_DBG(...) ;
 #endif
 
+#define DMA_BUFFER_SIZE 64
+
 typedef struct {
 	UART_HandleTypeDef *uartHandle;
 	GPIO_TypeDef *cs_port;

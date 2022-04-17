@@ -20,8 +20,10 @@
 JDY40_HandleTypeDef *jdy40;
 JDY40_state_t jdy40_state = JDY40_Idle;
 
+uint8_t dma_buffer[DMA_BUFFER_SIZE];
+
 char buf[128];
-uint8_t rx_buf[2];
+//uint8_t rx_buf[2];
 char rx_string[128];
 
 /*
@@ -88,14 +90,33 @@ void uart_rx(uint8_t rx) {
  	}
 }
 
-void uart_rx_complete_cb() {
-	//JDY40_DBG("JDY40 COMP CB - jdy40 is 0x%02x (%c)", rx_buf[1], rx_buf[1]);
-	uart_rx(rx_buf[1]);
-}
+//void uart_rx_complete_cb() {
+//	//JDY40_DBG("JDY40 COMP CB - jdy40 is 0x%02x (%c)", rx_buf[1], rx_buf[1]);
+//	uart_rx(rx_buf[1]);
+//}
+//
+//void uart_rx_half_cb() {
+//	//JDY40_DBG("JDY40 HALF CB - jdy40 is 0x%02x (%c)", rx_buf[0], rx_buf[0]);
+//	uart_rx(rx_buf[0]);
+//}
 
-void uart_rx_half_cb() {
-	//JDY40_DBG("JDY40 HALF CB - jdy40 is 0x%02x (%c)", rx_buf[0], rx_buf[0]);
-	uart_rx(rx_buf[0]);
+void jdy40_rx_event_handler(struct __UART_HandleTypeDef *uart, uint16_t offset) {
+
+	static uint16_t last_offset = 0;
+
+	JDY40_DBG("JDY40 Event - offset = %d", offset);
+
+	if (offset != last_offset) {
+
+		if (offset < last_offset) last_offset = 0; // wrap around
+
+		while (last_offset < offset) {
+
+			++last_offset;
+		}
+
+	}
+
 }
 
 void uart_rx_error_cb() {
@@ -129,11 +150,13 @@ JDY40_result_t jdy40_init(JDY40_HandleTypeDef *jdy40_init, UART_HandleTypeDef *u
 	jdy40->set_port = set_port;
 	jdy40->set_pin = set_pin;
 
-	HAL_UART_RegisterCallback(jdy40->uartHandle, HAL_UART_RX_COMPLETE_CB_ID, uart_rx_complete_cb);
-	HAL_UART_RegisterCallback(jdy40->uartHandle, HAL_UART_RX_HALFCOMPLETE_CB_ID, uart_rx_half_cb);
+	HAL_UART_RegisterRxEventCallback(uart, (pUART_RxEventCallbackTypeDef)jdy40_rx_event_handler);
+	//HAL_UART_RegisterCallback(jdy40->uartHandle, HAL_UART_RX_COMPLETE_CB_ID, uart_rx_complete_cb);
+	//HAL_UART_RegisterCallback(jdy40->uartHandle, HAL_UART_RX_HALFCOMPLETE_CB_ID, uart_rx_half_cb);
 	HAL_UART_RegisterCallback(jdy40->uartHandle, HAL_UART_ERROR_CB_ID, uart_rx_error_cb);
 
-	HAL_UART_Receive_DMA(jdy40->uartHandle, rx_buf, sizeof(rx_buf));
+	HAL_UARTEx_ReceiveToIdle_DMA(jdy40->uartHandle, (uint8_t *)&dma_buffer, DMA_BUFFER_SIZE);
+	//HAL_UART_Receive_DMA(jdy40->uartHandle, rx_buf, sizeof(rx_buf));
 
 	jdy40_aton(jdy40);
 	jdy40_on(jdy40);
@@ -141,7 +164,7 @@ JDY40_result_t jdy40_init(JDY40_HandleTypeDef *jdy40_init, UART_HandleTypeDef *u
 
 	result = jdy40_waitfor("Wake", 1000);
 
-	HAL_Delay(100);
+	HAL_Delay(500);
 
 	jdy40_send_receive(jdy40, "+BAUD");
 
