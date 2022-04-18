@@ -111,7 +111,7 @@ void jdy40_rx_event_handler(struct __UART_HandleTypeDef *uart, uint16_t offset) 
 		if (offset < last_offset) last_offset = 0; // wrap around
 
 		while (last_offset < offset) {
-
+			uart_rx(dma_buffer[last_offset]);
 			++last_offset;
 		}
 
