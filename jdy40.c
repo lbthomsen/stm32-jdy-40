@@ -74,7 +74,7 @@ void uart_string(char *s) {
 	rx_string[0] = 0;
 }
 
-void uart_rx(uint8_t rx) {
+static inline void jdy40_handle_character(uint8_t rx) {
 	JDY40_DBG("JDY40 RX - jdy40 is 0x%02x (rx_string = %s)", rx, rx_string);
 	switch (rx) {
 	case 0:
@@ -82,23 +82,13 @@ void uart_rx(uint8_t rx) {
 		break;
 	case 0x0a:
 		uart_string(rx_string);
-		jdy40_state = JDY40_Idle;
+		jdy40_state = JDY40_Ready;
 		break;
 	default:
 		jdy40_state = JDY40_Receiving;
 		strncat(rx_string, (char *)&rx, 1);
  	}
 }
-
-//void uart_rx_complete_cb() {
-//	//JDY40_DBG("JDY40 COMP CB - jdy40 is 0x%02x (%c)", rx_buf[1], rx_buf[1]);
-//	uart_rx(rx_buf[1]);
-//}
-//
-//void uart_rx_half_cb() {
-//	//JDY40_DBG("JDY40 HALF CB - jdy40 is 0x%02x (%c)", rx_buf[0], rx_buf[0]);
-//	uart_rx(rx_buf[0]);
-//}
 
 void jdy40_rx_event_handler(struct __UART_HandleTypeDef *uart, uint16_t offset) {
 
@@ -111,7 +101,7 @@ void jdy40_rx_event_handler(struct __UART_HandleTypeDef *uart, uint16_t offset) 
 		if (offset < last_offset) last_offset = 0; // wrap around
 
 		while (last_offset < offset) {
-			uart_rx(dma_buffer[last_offset]);
+			jdy40_handle_character(dma_buffer[last_offset]);
 			++last_offset;
 		}
 
